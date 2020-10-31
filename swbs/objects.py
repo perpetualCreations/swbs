@@ -1,9 +1,9 @@
 """
 Raspbot Remote Control Application (Raspbot RCA, Raspbot RCA-G), v1.2
-comms module, allows for socket communications.
+swbs module, allows for socket communications.
 Made by perpetualCreations
 
-Contains objects for module, including any package imports. Interact with these objects through comms.objects.
+Contains objects for module, including any package imports. Interact with these objects through swbs.objects.
 """
 
 try:
@@ -22,7 +22,9 @@ except ImportWarning as ImportWarningMessage:
     raise ImportWarning("Raised after SWBS tried importing modules.")
 pass
 
-exchange = None # socket object placeholder
+socket_receive = None # socket object placeholder
+socket_send = None # socket object placeholder
+socket_connect = None # socket connection object placeholder
 
 class keys:
     """
@@ -44,9 +46,11 @@ class targets:
 
     :var destination: list containing host and port of destination.
     :var endpoint: list containing host and port of endpoint.
+    :var client: string containing the address of the client.
     """
     destination = [None, 64220]
-    endpoint = ["localhost", 64220]
+    endpoint = ["127.0.0.1", 64220]
+    client = None
 pass
 
 class acknowledgement:
@@ -57,7 +61,7 @@ class acknowledgement:
     :var id: placeholder, will be overwritten by lookup with acknowledgement_dictionary
     :var num_id: placeholder, will be overwritten by receiving socket input
     """
-    dictionary = {1000:"connection_acknowledge", 2001:"authentication_invalid"}
+    dictionary = {1000:"ok", 2000:"auth_invalid", 2001:"hmac_fail"}
     id = None
     num_id = None
 pass

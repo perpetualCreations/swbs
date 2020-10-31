@@ -1,12 +1,12 @@
 """
 Raspbot Remote Control Application (Raspbot RCA, Raspbot RCA-G), v1.2
-comms module, allows for socket communications.
+swbs module, allows for socket communications.
 Made by perpetualCreations
 
 Contains acknowledgement handle functions.
 """
 
-from comms import objects, interface
+from swbs import objects, interface
 
 def send_acknowledgement(num_id):
     """
@@ -25,7 +25,7 @@ def send_acknowledgement(num_id):
     ###### n/a for sending as client ######
     Number ID: 2001
     ID: rca-1.2:authentication_invalid
-    Description: Authentication was invalid, and was rejected by host. Check comms.cfg on both sides to make sure authentication matches.
+    Description: Authentication was invalid, and was rejected by host. Check swbs.cfg on both sides to make sure authentication matches.
     ###### n/a for sending as client ######
 
     ###### n/a for sending as client ######
@@ -61,7 +61,7 @@ def receive_acknowledgement():
 
     Number ID: 2001
     ID: rca-1.2:authentication_invalid
-    Description: Authentication was invalid, and was rejected by host. Check comms.cfg on both sides to make sure authentication matches.
+    Description: Authentication was invalid, and was rejected by host. Check swbs.cfg on both sides to make sure authentication matches.
 
     Number ID: 2002
     ID: rca-1.2:unknown_command

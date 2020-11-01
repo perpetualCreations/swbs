@@ -1,6 +1,8 @@
 """
 Socket Wrapper for Byte Strings (SWBS)
 Made by perpetualCreations
+
+configure module, configure security keys, hostname and port, and role as client or server.
 """
 
 from swbs import objects
@@ -20,7 +22,7 @@ pass
 
 def destination(ip, port = 64220):
     """
-    Configures destination host.
+    Configures destination host, for operating as a client.
     :param ip: hostname of the destination, should be a string. default is 64220.
     :param port: destination port, should be an integer.
     :return: None
@@ -31,11 +33,20 @@ pass
 
 def endpoint(ip = "127.0.0.1", port = 64220):
     """
-    Configures endpoint host.
+    Configures endpoint host, for operating as a server.
     :param ip: hostname of the endpoint, should be a string. default is localhost or 127.0.0.1, this should not be changed.
     :param port: endpoint port, should be an integer. default is 64220.
-    :return:
+    :return: None
     """
     objects.targets.endpoint[0] = ip
     objects.targets.endpoint[1] = port
+pass
+
+def role(state = False):
+    """
+    Configures role as client or server.
+    :param state: boolean True/False, if True, signals to operate as server.
+    :return: None
+    """
+    objects.role = state
 pass

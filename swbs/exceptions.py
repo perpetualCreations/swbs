@@ -1,3 +1,10 @@
+"""
+Socket Wrapper for Byte Strings (SWBS)
+Made by perpetualCreations
+
+exceptions module, contains swbs exceptions raised at errors.
+"""
+
 from swbs import interface
 
 class AuthInvalid(Exception):
@@ -24,5 +31,17 @@ pass
 class ReceivedAcknowledgementInvalid(Exception):
     """
     interface.receive_acknowledgement received an invalid acknowledgement ID.
+    """
+pass
+
+class NotClient(Exception):
+    """
+    A function was invoked that was not intended to be ran by the host running as a server.
+    """
+pass
+
+class NotServer(Exception):
+    """
+    A function was invoked that was not intended to be ran by the host running as a client.
     """
 pass

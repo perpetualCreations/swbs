@@ -50,7 +50,11 @@ def send(message):
     :return: None
     """
     encrypted = encrypt(message)
-    objects.socket_send.sendall(encrypted[1] + b" div " + encrypted[2] + b" div " + encrypted[0])
+    if objects.role is True:
+        objects.socket_server.sendall((encrypted[1] + b" div " + encrypted[2] + b" div " + encrypted[0]))
+    else:
+        objects.socket_client.sendall(encrypted[1] + b" div " + encrypted[2] + b" div " + encrypted[0])
+    pass
 pass
 
 def receive():
@@ -60,7 +64,11 @@ def receive():
     This no longer requires to be used as host.receive(self, socket.receive(integer)).
     :return: decrypted message.
     """
-    socket_input_spliced = objects.socket_receive.recv(8192).split(b" div ")
+    if objects.role is True:
+        socket_input_spliced = objects.socket_server.recv(8192).split(b" div ")
+    else:
+        socket_input_spliced = objects.socket_client.recv(8192).split(b" div ")
+    pass
     return decrypt(socket_input_spliced[2], socket_input_spliced[1], socket_input_spliced[0])
 pass
 
@@ -87,7 +95,11 @@ def send_acknowledgement(num_id):
     :return: None
     """
     if num_id in list(objects.acknowledgement.dictionary.keys()):
-        objects.socket_send.sendall(str(num_id).encode(encoding = "ascii", errors = "replace"))
+        if objects.role is True:
+            objects.socket_server.sendall(str(num_id).encode(encoding = "ascii", errors = "replace"))
+        else:
+            objects.socket_client.sendall(str(num_id).encode(encoding = "ascii", errors = "replace"))
+        pass
     else:
         raise exceptions.SentAcknowledgementInvalid("Acknowledgement issued has an invalid ID.")
     pass
@@ -115,9 +127,15 @@ def receive_acknowledgement():
     :return: True/False boolean, returns False if ID is 2XXX, an error, otherwise returns True.
     """
     try:
-        objects.socket_init.setblocking(True)
-        objects.acknowledgement_num_id = int(objects.socket_receive.recv(4).decode(encoding = "utf-8", errors = "replace"))
-        objects.socket_init.setblocking(False)
+        if objects.role is True:
+            objects.socket_server.setblocking(True)
+            objects.acknowledgement_num_id = int(objects.socket_server.recv(4).decode(encoding = "utf-8", errors = "replace"))
+            objects.socket_server.setblocking(False)
+        else:
+            objects.socket_client.setblocking(True)
+            objects.acknowledgement_num_id = int(objects.socket_client.recv(4).decode(encoding = "utf-8", errors = "replace"))
+            objects.socket_client.setblocking(False)
+        pass
     except objects.socket.error:
         raise objects.socket.error("Raised after SWBS tried to listen on a socket.")
     except ValueError:
@@ -140,8 +158,11 @@ def connect():
     Connects to pre-configured destination, and starts an encrypted connection.
     :return: None
     """
+    if objects.role is True:
+        raise exceptions.NotClient("interface.connect was invoked, while running as server.")
+    pass
     try:
-        objects.socket_send.connect((objects.targets.destination[0], objects.targets.destination[1]))
+        objects.socket_client.connect((objects.targets.destination[0], objects.targets.destination[1]))
     except objects.socket.error:
         raise objects.socket.error("Raised after SWBS tried connecting to the destination host.")
     pass
@@ -154,8 +175,11 @@ def disconnect():
     Sends a message to host notifying that client has disconnected and then closes socket.
     :return: none.
     """
-    objects.socket_receive.close(0)
-    objects.socket_send.close(0)
+    if objects.role is True:
+        objects.socket_server.close(0)
+    else:
+        objects.socket_client.close(0)
+    pass
 pass
 
 def accept():
@@ -165,10 +189,13 @@ def accept():
     You may want to run this with multiprocessing.
     :return: None
     """
+    if objects.role is False:
+        raise exceptions.NotServer("interface.accept was invoked, while running as client.")
+    pass
     objects.socket_connect.bind((objects.targets.endpoint[0], objects.targets.endpoint[1]))
     objects.socket_connect.setblocking(True)
     objects.socket_connect.listen()
-    objects.socket_receive, objects.targets.client = objects.socket_connect.accept()
+    objects.socket_server, objects.targets.client = objects.socket_connect.accept()
     objects.socket_connect.setblocking(False)
     if (SHA3_512.new(comms.interface.receive()).hexdigest()).encode(encoding = "ascii", errors = "replace") == comms.objects.auth:
         comms.acknowledge.send_acknowledgement(1000)

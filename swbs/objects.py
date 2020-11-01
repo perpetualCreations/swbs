@@ -22,9 +22,11 @@ except ImportWarning as ImportWarningMessage:
     raise ImportWarning("Raised after SWBS tried importing modules.")
 pass
 
-socket_receive = None # socket object placeholder
-socket_send = None # socket object placeholder
+socket_server = None # socket object placeholder
+socket_client = None # socket object placeholder
 socket_connect = None # socket connection object placeholder
+
+role = False
 
 class keys:
     """

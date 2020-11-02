@@ -33,14 +33,19 @@ def destination(ip, port = 64220):
     objects.targets.destination[1] = port
 pass
 
-def endpoint(ip = "127.0.0.1", port = 64220):
+def endpoint(ip = "127.0.0.1", port = 64220, auto = False):
     """
     Configures endpoint host, for operating as a server.
-    :param ip: hostname of the endpoint, should be a string. default is localhost or 127.0.0.1, this should not be changed.
+    :param ip: hostname of the endpoint, should be a string. default is localhost or 127.0.0.1. set this to hostname.
     :param port: endpoint port, should be an integer. default is 64220.
+    :param auto: True/False boolean, signaling whether to automatically retrieve the hostname, and set it as the IP.
     :return: None
     """
-    objects.targets.endpoint[0] = ip
+    if auto is True:
+        objects.targets.endpoint[0] = objects.socket.gethostname()
+    else:
+        objects.targets.endpoint[0] = ip
+    pass
     objects.targets.endpoint[1] = port
 pass
 

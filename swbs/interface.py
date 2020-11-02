@@ -177,10 +177,18 @@ def disconnect():
     :return: None
     """
     if objects.role is True:
-        objects.socket_server.close()
+        try:
+            objects.socket_server.close()
+        except objects.socket.error:
+            pass
+        pass
         objects.socket_server = objects.socket.socket(objects.socket.AF_INET, objects.socket.SOCK_STREAM)
     else:
-        objects.socket_client.close()
+        try:
+            objects.socket_client.close()
+        except objects.socket.error:
+            pass
+        pass
         objects.socket_client = objects.socket.socket(objects.socket.AF_INET, objects.socket.SOCK_STREAM)
     pass
 pass

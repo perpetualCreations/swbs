@@ -4,7 +4,7 @@ A straight-forward wrapper for sending and receiving byte strings with sockets.
 ## Install
 Download the Python wheel file from the Github repository release, and install manually using:
 ```commandline
-pip3 install /path/to/wheel/file/here/swbs-1.0.whl
+pip3 install /path/to/wheel/file/here/swbs-1.0-py3-none-any.whl
 ```
 Or install through PyPI, using:
 ```commandline

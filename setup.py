@@ -11,14 +11,15 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name = "swbs", # Replace with your own username
-    version = "1.0",
+    name = "swbs",
+    version = "1.1",
     author = "perpetualCreations",
     author_email = "tchen0584@gmail.com",
     description = "Socket wrapper for sending and receiving byte strings.",
     long_description = long_description,
     long_description_content_type = "text/markdown",
     url = "https://github.com/perpetualCreations/swbs/",
+    install_requires = ["pycryptodomex >= 3.9.9"],
     packages=setuptools.find_packages(),
     classifiers = [
         "Programming Language :: Python :: 3",

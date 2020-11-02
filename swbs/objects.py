@@ -6,25 +6,19 @@ Made by perpetualCreations
 Contains objects for module, including any package imports. Interact with these objects through swbs.objects.
 """
 
-try:
-    import socket
-    from platform import system
-    from subprocess import call, Popen
-    from time import sleep
-    from Cryptodome.Cipher import Salsa20
-    from Cryptodome.Hash import HMAC, SHA256, MD5
-    from ast import literal_eval
-    from os import getcwd
-    from basics import basics, process # TODO review usage
-except ImportError as ImportErrorMessage:
-    raise ImportError("Raised after SWBS tried importing modules.")
-except ImportWarning as ImportWarningMessage:
-    raise ImportWarning("Raised after SWBS tried importing modules.")
-pass
+import socket
+from Cryptodome.Cipher import Salsa20
+from Cryptodome.Hash import HMAC, SHA256, MD5, SHA3_512
 
 socket_server = None # socket object placeholder
-socket_client = None # socket object placeholder
-socket_connect = None # socket connection object placeholder
+socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+socket_connect = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+socket_client.setblocking(False)
+socket_client.settimeout(10)
+
+socket_connect.setblocking(False)
+socket_connect.settimeout(10)
 
 role = False
 
@@ -39,6 +33,7 @@ class keys:
     key = None
     hmac_key = None
     auth = None
+    hashcompare = False
 pass
 
 class targets:

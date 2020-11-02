@@ -6,7 +6,7 @@ Made by perpetualCreations
 This script handles interfacing functions.
 """
 
-from swbs import objects, acknowledge, exceptions
+from swbs import objects, errors
 
 def encrypt(byte_input):
     """
@@ -14,14 +14,9 @@ def encrypt(byte_input):
     :param byte_input: byte string to be encrypted.
     :return: encrypted string, nonce, and HMAC validation.
     """
-    if isinstance(byte_input, bytes):
-        pass
-    else:
-        byte_input.encode(encoding = "ascii", errors = "replace")
-    pass
     ciphering = objects.Salsa20.new(objects.keys.key)
     encrypted = ciphering.encrypt(byte_input)
-    validation = objects.HMAC.new(objects.keys.hmac_key.encode(encoding = "ascii", errors = "replace"), msg = encrypted, digestmod = objects.SHA256)
+    validation = objects.HMAC.new(objects.keys.hmac_key, msg = encrypted, digestmod = objects.SHA256)
     return [encrypted, ciphering.nonce, (validation.hexdigest()).encode(encoding = "ascii")]
 pass
 
@@ -32,11 +27,11 @@ def decrypt(encrypted_input, validate, nonce):
     :param validate: HMAC validation byte string.
     :param nonce: nonce, additional security feature to prevent replay attacks.
     """
-    validation = objects.HMAC.new(objects.keys.hmac_key.encode(encoding = "ascii", errors = "replace"), msg = encrypted_input, digestmod = objects.SHA256)
+    validation = objects.HMAC.new(objects.keys.hmac_key, msg = encrypted_input, digestmod = objects.SHA256)
     try:
         validation.hexverify(validate.decode(encoding = "utf-8", errors = "replace"))
     except ValueError:
-        exceptions.HMACMismatch("Failed HMAC validation, disconnected from peer.")
+        errors.HMACMismatch("Failed HMAC validation, disconnected from peer.")
     pass
     ciphering = objects.Salsa20.new(objects.keys.key, nonce = nonce)
     return ciphering.decrypt(encrypted_input)
@@ -49,6 +44,13 @@ def send(message):
     :param message: message to be encrypted.
     :return: None
     """
+    if isinstance(message, bytes):
+        pass
+    elif isinstance(message, str):
+        message = message.encode(encoding = "ascii", errors = "replace")
+    else:
+        message = str(message).encode(encoding = "ascii", errors = "replace")
+    pass
     encrypted = encrypt(message)
     if objects.role is True:
         objects.socket_server.sendall((encrypted[1] + b" div " + encrypted[2] + b" div " + encrypted[0]))
@@ -57,11 +59,10 @@ def send(message):
     pass
 pass
 
-def receive():
+def receive(decode = False):
     """
-    Wrapper for decrypt, formats received input and returns decrypted message. socket.socket_main.recv is now built-in.
-    interface.receive has no termination-based method of detecting the end of a message. Instead, it receives 4 bytes,
-    This no longer requires to be used as host.receive(self, socket.receive(integer)).
+    Wrapper for decrypt, formats received input and returns decrypted message.
+    :param decode: True/False boolean, by default is False, if True will return decoded string instead of bytestring.
     :return: decrypted message.
     """
     if objects.role is True:
@@ -69,7 +70,11 @@ def receive():
     else:
         socket_input_spliced = objects.socket_client.recv(8192).split(b" div ")
     pass
-    return decrypt(socket_input_spliced[2], socket_input_spliced[1], socket_input_spliced[0])
+    if decode is False:
+        return decrypt(socket_input_spliced[2], socket_input_spliced[1], socket_input_spliced[0])
+    else:
+        return decrypt(socket_input_spliced[2], socket_input_spliced[1], socket_input_spliced[0]).decode(encoding = "utf-8", errors = "replace")
+    pass
 pass
 
 def send_acknowledgement(num_id):
@@ -101,7 +106,7 @@ def send_acknowledgement(num_id):
             objects.socket_client.sendall(str(num_id).encode(encoding = "ascii", errors = "replace"))
         pass
     else:
-        raise exceptions.SentAcknowledgementInvalid("Acknowledgement issued has an invalid ID.")
+        raise errors.SentAcknowledgementInvalid("Acknowledgement issued has an invalid ID.")
     pass
 pass
 
@@ -129,25 +134,25 @@ def receive_acknowledgement():
     try:
         if objects.role is True:
             objects.socket_server.setblocking(True)
-            objects.acknowledgement_num_id = int(objects.socket_server.recv(4).decode(encoding = "utf-8", errors = "replace"))
+            objects.acknowledgement.num_id = int(objects.socket_server.recv(4).decode(encoding = "utf-8", errors = "replace"))
             objects.socket_server.setblocking(False)
         else:
             objects.socket_client.setblocking(True)
-            objects.acknowledgement_num_id = int(objects.socket_client.recv(4).decode(encoding = "utf-8", errors = "replace"))
+            objects.acknowledgement.num_id = int(objects.socket_client.recv(4).decode(encoding = "utf-8", errors = "replace"))
             objects.socket_client.setblocking(False)
         pass
-    except objects.socket.error:
-        raise objects.socket.error("Raised after SWBS tried to listen on a socket.")
     except ValueError:
         raise ValueError("Acknowledgement could not be decoded from byte string to integer. Unexpected behavior, or packet loss?")
     pass
     try:
-        objects.acknowledgement_id = objects.acknowledgement_dictionary[objects.acknowledgement_num_id]
+        objects.acknowledgement.id = objects.acknowledgement.dictionary[objects.acknowledgement.num_id]
     except KeyError:
         raise KeyError("Acknowledgement could not be decoded from integer to string through the conversion dictionary. Is the peer on a different version, unexpected behavior, or packet loss?")
     pass
     if objects.acknowledgement.num_id in range(0, 2000):
         return True
+    elif objects.acknowledgement.num_id == 2000:
+        raise errors.AuthInvalid("Given authentication string was invalid, this host was not trusted.")
     else:
         return False
     pass
@@ -159,26 +164,24 @@ def connect():
     :return: None
     """
     if objects.role is True:
-        raise exceptions.NotClient("interface.connect was invoked, while running as server.")
+        raise errors.NotClient("interface.connect was invoked, while running as server.")
     pass
-    try:
-        objects.socket_client.connect((objects.targets.destination[0], objects.targets.destination[1]))
-    except objects.socket.error:
-        raise objects.socket.error("Raised after SWBS tried connecting to the destination host.")
-    pass
-    interface.send(objects.keys.auth)
+    objects.socket_client.connect((objects.targets.destination[0], objects.targets.destination[1]))
+    send(objects.keys.auth)
     receive_acknowledgement()
 pass
 
 def disconnect():
     """
-    Sends a message to host notifying that client has disconnected and then closes socket.
-    :return: none.
+    Closes active socket.
+    :return: None
     """
     if objects.role is True:
-        objects.socket_server.close(0)
+        objects.socket_server.close()
+        objects.socket_server = objects.socket.socket(objects.socket.AF_INET, objects.socket.SOCK_STREAM)
     else:
-        objects.socket_client.close(0)
+        objects.socket_client.close()
+        objects.socket_client = objects.socket.socket(objects.socket.AF_INET, objects.socket.SOCK_STREAM)
     pass
 pass
 
@@ -190,17 +193,26 @@ def accept():
     :return: None
     """
     if objects.role is False:
-        raise exceptions.NotServer("interface.accept was invoked, while running as client.")
+        raise errors.NotServer("interface.accept was invoked, while running as client.")
     pass
     objects.socket_connect.bind((objects.targets.endpoint[0], objects.targets.endpoint[1]))
     objects.socket_connect.setblocking(True)
     objects.socket_connect.listen()
     objects.socket_server, objects.targets.client = objects.socket_connect.accept()
     objects.socket_connect.setblocking(False)
-    if (SHA3_512.new(comms.interface.receive()).hexdigest()).encode(encoding = "ascii", errors = "replace") == comms.objects.auth:
-        comms.acknowledge.send_acknowledgement(1000)
+    if objects.keys.hashcompare is False:
+        if receive() == objects.keys.auth:
+            send_acknowledgement(1000)
+        else:
+            send_acknowledgement(2000)
+            raise errors.AuthInvalid("Given authentication string was invalid, peer cannot be trusted.")
+        pass
     else:
-        send_acknowledgement(2000)
-        raise exceptions.AuthInvalid("Given authentication string was invalid, peer cannot be trusted.")
+        if (objects.SHA3_512.new(receive()).hexdigest()).decode(encoding = "ascii", errors = "replace") == objects.keys.auth:
+            send_acknowledgement(1000)
+        else:
+            send_acknowledgement(2000)
+            raise errors.AuthInvalid("Given authentication string was invalid, peer cannot be trusted.")
+        pass
     pass
 pass

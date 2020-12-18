@@ -1,6 +1,8 @@
 # Socket Wrapper for Byte Strings
 A straight-forward wrapper for sending and receiving byte strings with sockets.
 
+A more up-to-date version of the documentation below is available at [dreamerslegacy.xyz](https://dreamerslegacy.xyz/projects/swbs/docs.html).
+
 ## Install
 Download the Python wheel file from the Github repository release, and install manually using:
 ```commandline
@@ -83,7 +85,7 @@ Server example:
 import swbs
 swbs.configure.security("some encryption key", "an hmac key", "auth string")
 swbs.configure.role(False)
-swbs.configure.destination("localhost", 2234) # localhost can be replaced with an IP such as 192.168.1.1, if your using the default port, you may forgo the second parameter# .
+swbs.configure.endpoint("localhost", 2234) # localhost can be replaced with an IP such as 192.168.1.1, if your using the default port, you may forgo the second parameter# .
 ```
 
 #### Connect and Accept
@@ -120,7 +122,7 @@ Using this function, the example now looks like:
 import swbs
 swbs.configure.security("some encryption key", "an hmac key", "auth string")
 swbs.configure.role(False)
-swbs.configure.destination("localhost", 2234) # localhost can be replaced with an IP such as 192.168.1.1, if your using the default port, you may forgo the second parameter# .
+swbs.configure.endpoint("localhost", 2234) # localhost can be replaced with an IP such as 192.168.1.1, if your using the default port, you may forgo the second parameter# .
 swbs.interface.accept()
 ```
 
@@ -153,7 +155,7 @@ Server example:
 import swbs
 swbs.configure.security("some encryption key", "an hmac key", "auth string")
 swbs.configure.role(False)
-swbs.configure.destination("localhost", 2234) # localhost can be replaced with an IP such as 192.168.1.1, if your using the default port, you may forgo the second parameter# .
+swbs.configure.endpoint("localhost", 2234) # localhost can be replaced with an IP such as 192.168.1.1, if your using the default port, you may forgo the second parameter# .
 swbs.interface.accept()
 print(swbs.interface.receive(True)) # you can also have swbs.interface.receive pipe into a variable
 ```
@@ -185,7 +187,7 @@ Server example:
 import swbs
 swbs.configure.security("some encryption key", "an hmac key", "auth string")
 swbs.configure.role(False)
-swbs.configure.destination("localhost", 2234) # localhost can be replaced with an IP such as 192.168.1.1, if your using the default port, you may forgo the second parameter# .
+swbs.configure.endpoint("localhost", 2234) # localhost can be replaced with an IP such as 192.168.1.1, if your using the default port, you may forgo the second parameter# .
 swbs.interface.accept()
 print(swbs.interface.receive(True)) # you can also have swbs.interface.receive pipe into a variable
 swbs.interface.disconnect()
@@ -199,12 +201,12 @@ If you would like to see a pre-written example, see the tests directory in the r
 
 And remember, the server script must be running first, before any client can connect to it.
 
-### Future
+## Future
 
 More features are planned, such as a `reconnect` function for the `interface` module. 
 These will see implementation in future releases.
 
-### End
+## End
 This is the end of the documentation for the SWBS package.
 
 Please visit https://dreamerslegacy.xyz for other projects, and for contact info in the case of any inquiries.

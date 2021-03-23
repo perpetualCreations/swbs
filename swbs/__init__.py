@@ -251,7 +251,7 @@ class Host(Instance):
 class ServerClientManagers:
     """
     Client managers for Server socket instances.
-    Intended for testing, can be piped into connection_handler parameter for Server class.
+    Intended for testing, and end-user modification, can be piped into connection_handler parameter for Server class.
     """
     @staticmethod
     def client_manager(instance, connection_socket: object, client_id: int) -> None:
@@ -290,13 +290,47 @@ class ServerClientManagers:
                 del instance.clients[client_id]
                 break
 
+    class ClientManager:
+        """
+        Client manager class template. Factory method.
+        For users to derive from for their own client managers.
+
+        To use with Server class instances, use syntax as if this class were a function.
+        """
+        def __init__(self, instance, connection_socket: object, client_id: int):
+            """
+            Takes given parameters, and stores as class variables.
+
+            :param instance: class instance
+            :param connection_socket: object, socket object from connection
+            :param client_id: int, client identification
+            """
+            self.instance = instance
+            self.connection_socket = connection_socket
+            self.client_id = client_id
+
+        def check_client_connected(self) -> None:
+            """
+            Checks if client is still connected. If not, stop instance of ClientManager.
+            Loops, blocking execution.
+
+            :return: None
+            """
+            while True:
+                sleep(1)
+                # noinspection PyBroadException
+                try: self.connection_socket.send(b"\x00")
+                except BaseException:
+                    del self.instance.clients[self.client_id]
+                    break
+
 class Server(Instance):
     """
     Server socket wrapper, derived from Instance. Factory method.
     Supports multiple clients with threading, at the cost of resource footprint and complexity.
     Has no stop function, either stop program or close socket and delete instance.
     """
-    def __init__(self, port: int, key: Union[str, bytes], connection_handler: object = ServerClientManagers.client_manager, host: str = "localhost", key_is_path: bool = False):
+    def __init__(self, port: int, key: Union[str, bytes], connection_handler: object = ServerClientManagers.client_manager, host: str = "localhost", key_is_path: bool = False, no_listen_on_init: bool = False):
         """
         Initialize instance. See documentation for Instance.
 
@@ -304,7 +338,10 @@ class Server(Instance):
         {0:{"address":"client.address.here", "port":0, "socket":socket_connection_object, "thread":client_management_thread}
         ...For each connection, where the key is the value of self.clients_handled at time of connection, creating a sequential integer ID.
 
+        Begins listening for client connections immediately upon initializing, unless specified in parameters.
+
         :param connection_handler: function, executed as a thread with every connection, see documentation for Server.listen for more information, default is Server.client_manager
+        :param no_listen_on_init: bool, if True, listen is not started on initialization, default False
         """
         super().__init__(host, port, key, key_is_path)
         try: self.socket.bind((self.host, self.port))
@@ -312,12 +349,33 @@ class Server(Instance):
         self.connection_handler = connection_handler
         self.clients_handled = 0
         self.clients = {}
-        self.thread_listen = threading.Thread(target = Server.listen, args = (self,), daemon = True)
+        self.thread_listen = None
+        self.thread_listen_kill_flag = False
+        if no_listen_on_init is False: Server.start_listen(self)
+
+    def kill_listen(self) -> None:
+        """
+        Stops listening thread, self.thread_listen.
+        Start thread again with Server.start_thread.
+
+        :return: None
+        """
+        self.thread_listen_kill_flag = True
+
+    def start_listen(self) -> None:
+        """
+        Starts listening thread, self.thread_listen.
+        Called on class initialization.
+
+        :return: None
+        """
+        self.thread_listen_kill_flag = False
+        self.thread_listen = threading.Thread(target=Server.listen, args=(self,), daemon=True)
         self.thread_listen.start()
 
     def listen(self) -> None:
         """
-        Starts listening for connections. Will block permanently until stopped.
+        Listens for connections. Will block permanently until stopped.
         Thread object is automatically made for this function, and initializes with class.
 
         For each client connection, a thread will be started for it.
@@ -329,7 +387,7 @@ class Server(Instance):
 
         :return: None
         """
-        while True:
+        while self.thread_listen_kill_flag is False:
             Instance.set_blocking(self, True)
             self.socket.listen()
             connection_socket, client_source = self.socket.accept()

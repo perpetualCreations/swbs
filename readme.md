@@ -18,3 +18,6 @@ pip3 install /path/to/wheel/file/here/swbs-1.2-py3-none-any.whl
 pip3 install swbs
 ```
 Please see documentation for more information.
+
+## For Versions < 1.2
+Versions below 1.2 are deprecated and no longer supported. The documentation is no longer available, unless produced from a previous VCS commit. 

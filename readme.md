@@ -3,7 +3,7 @@
 
 A straight-forward wrapper for sending and receiving byte strings with sockets.
 
-Able to juggle multiple clients with one server socket instance, and operate across threads.
+(Probably) thread safe, allowing for juggling of multiple clients with one server socket instance through threading.
 
 ## Documentation
 To see documentation regarding installation and usage, please visit [https://dreamerslegacy.xyz/projects/swbs/docs.html](https://dreamerslegacy.xyz/prjects/swbs/docs.html).

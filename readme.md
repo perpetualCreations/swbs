@@ -6,7 +6,7 @@
 (Probably) thread safe, allowing for juggling of multiple clients with one server socket instance through threading.
 
 ## Documentation
-To see documentation regarding installation and usage, please visit [https://dreamerslegacy.xyz/projects/swbs/docs.html](https://dreamerslegacy.xyz/prjects/swbs/docs.html).
+To see documentation regarding installation and usage, please visit [https://dreamerslegacy.xyz/projects/swbs/docs/index.html](https://dreamerslegacy.xyz/projects/swbs/docs/index.html).
 
 ## Releases & Dist.
 With the released wheel file, after downloading:

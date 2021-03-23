@@ -1,7 +1,7 @@
 # Socket Wrapper for Byte Strings
 [![forthebadge](https://forthebadge.com/images/badges/contains-technical-debt.svg)](https://forthebadge.com) [![forthebadge](https://forthebadge.com/images/badges/made-with-python.svg)](https://forthebadge.com)
 
-A straight-forward wrapper for sending and receiving byte strings with sockets.
+"A straight-forward wrapper for sending and receiving byte strings with sockets."
 
 (Probably) thread safe, allowing for juggling of multiple clients with one server socket instance through threading.
 

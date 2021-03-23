@@ -12,7 +12,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name = "swbs",
-    version = "1.1",
+    version = "1.2",
     author = "perpetualCreations",
     author_email = "tchen0584@gmail.com",
     description = "Socket wrapper for sending and receiving byte strings.",

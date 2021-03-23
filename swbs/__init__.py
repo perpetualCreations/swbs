@@ -188,7 +188,7 @@ class Instance:
     def receive(self, buffer_size: int = 4096, socket_instance: object = "DEFAULT") -> str:
         """
         See Interface.receive for documentation.
-t
+
         :return: str, message received
         """
         if socket_instance == "DEFAULT": socket_instance = self.socket
@@ -391,7 +391,7 @@ class Server(Instance):
             Instance.set_blocking(self, True)
             self.socket.listen()
             connection_socket, client_source = self.socket.accept()
-            self.clients.update({self.clients_handled: {"address":client_source[0], "port":client_source[1], "socket":connection_socket, "thread":threading.Thread(target = self.connection_handler, args = (self, connection_socket, self.clients_handled))}})
+            self.clients.update({self.clients_handled: {"address":client_source[0], "port":client_source[1], "socket":connection_socket, "thread":threading.Thread(target = self.connection_handler, args = (self, connection_socket, self.clients_handled,))}})
             self.clients[self.clients_handled]["thread"].start()
             self.clients_handled += 1
 

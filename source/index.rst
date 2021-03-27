@@ -94,6 +94,50 @@ SWBS is designed to be used as a straight-forward, simple socket wrapper library
 There is an extended wealth of example scripts under the tests directory of the source Github repository. See project homepage for link.
 The ServerClientManagers class comes with example client managers.
 
+As mentioned in the Security section, AES encryption/decryption can be disabled by initializing an Instance derivative (Host/Client/Server class) with None as the key parameter.
+
+.. code-block:: python
+
+   # Another previous example
+   import swbs
+   host = swbs.Host(port = 42069, key = None)
+   host.listen()
+   print(host.receive())
+   host.send("Something silly.")
+   host.disconnect()
+
+.. code-block:: python
+
+    # Example from before, with AES disabled
+    import swbs
+    client = swbs.Client("127.0.0.1", 42069, None)
+    client.connect()
+    client.send(b"Hello world.")
+    print(client.receive())
+    client.disconnect()
+
+AES encryption/decryption can also be disabled for specific send/receive function calls.
+
+.. code-block:: python
+
+   # Another previous example
+   import swbs
+   host = swbs.Host(42069, b"SilentDayWeDream")
+   host.listen()
+   print(host.receive(no_decrypt = True))
+   host.send("Something silly.")
+   host.disconnect()
+
+.. code-block:: python
+
+    # Another example, with AES disabled
+    import swbs
+    client = swbs.Client("127.0.0.1", 42069, b"SilentDayWeDream")
+    client.connect()
+    client.send(b"Hello world.", no_encrypt = True)
+    print(client.receive())
+    client.disconnect()
+
 See API reference for supplementary information regarding usage of components.
 
 Instance
@@ -132,7 +176,9 @@ The template class comes with a blocking function that does exactly this by send
 
 Security
 --------
-Data exchanged by SWBS is encrypted with AES. This is not optional.
+Data exchanged by SWBS is encrypted with AES.
+This is optional, initialize an Instance derivative (Host/Client/Server) with None as the key parameter.
+It's also possible to disable encryption/decryption for specific send/receive operations by specifying no_encrypt/no_decrypt as True for send/receive built-in class functions.
 
 The client and server must have the same key string beforehand, to communicate.
 The key must be 16 characters long. When supplied to an Instance derivative, under the key parameter, the input can be either a string or bytes object or a string containing a path to a plaintext-encoded file.

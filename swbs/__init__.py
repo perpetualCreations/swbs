@@ -56,14 +56,15 @@ class Security:
         else: return MD5.new(urandom(randrange(random_min, random_max))).hexdigest().encode("ascii")
 
     @staticmethod
-    def get_key(key: Union[str, bytes], key_is_path: bool = False) -> bytes:
+    def get_key(key: Union[str, bytes, None], key_is_path: bool = False) -> Union[bytes, None]:
         """
         Collects key, if already bytes and not from path, returns bytes again.
 
-        :param key: Union[str, bytes], if key_is_path is False, key string, otherwise path to key file
+        :param key: Union[str, bytes, None], if key_is_path is False, key string, otherwise path to key file, if None return None
         :param key_is_path: bool, if True, key parameter is treated as path to key file for reading from, default False
         :return: bytes, encryption key
         """
+        if key is None: return None
         if key_is_path is True:
             try:
                 with open(key, "rb") as key_handle: key = key_handle.read()
@@ -109,45 +110,56 @@ class Interface:
     Use a Server or Client class instance to access these functions.
     """
     @staticmethod
-    def send(socket_instance: object, key: bytes, message: Union[str, bytes]) -> None:
+    def send(socket_instance: object, key: Union[bytes, None], message: Union[str, bytes]) -> None:
         """
         Uses Security class to encrypt a message, sends encrypted message with provided socket object.
 
         :param socket_instance: object, socket object
-        :param key: bytes, AES encryption key to be passed off to Security.encrypt
-        :param message: Union[str, bytes], message for sending and encrypting
+        :param key: Union[bytes, None], AES encryption key to be passed off to Security.encrypt, if None encryption does not run
+        :param message: Union[str, bytes], message to be sent
         :return: None
         """
-        components = Security.encrypt(key, message)
-        try: socket_instance.sendall(components[0] + b" |div| " + components[1] + b" |div| " + components[2])
-        except socket.error as ParentException: raise Exceptions.InterfaceError("Failed to send message.") from ParentException
+        if isinstance(message, str): message = message.encode("ascii", "replace")
+        if key is not None:
+            components = Security.encrypt(key, message)
+            try: socket_instance.sendall(components[0] + b" |div| " + components[1] + b" |div| " + components[2])
+            except socket.error as ParentException: raise Exceptions.InterfaceError("Failed to send message.") from ParentException
+        else:
+            try: socket_instance.sendall(message)
+            except socket.error as ParentException: raise Exceptions.InterfaceError("Failed to send message.") from ParentException
 
     @staticmethod
-    def receive(socket_instance: object, key: bytes, buffer_size: int = 4096) -> str:
+    def receive(socket_instance: object, key: Union[bytes, None], buffer_size: int = 4096) -> str:
         """
-        Uses Security class to decrypt a received message, returns message as string.
+        If key provided, uses Security class to decrypt a received message, returns message as string.
+        If decrypting and message components (encrypted bytes, nonce, tag) are out of index, returns raw message as string.
 
         :param socket_instance: object, socket object
-        :param key: bytes, AES encryption key to be passed off to Security.decrypt
+        :param key: Union[bytes, None], AES encryption key to be passed off to Security.decrypt, if None decryption does not run
         :param buffer_size: int, size of receiving buffer, default 4096
         :return: str, decrypted message received
         """
-        try: components = socket_instance.recv(buffer_size).split(b" |div| ")
+        try: byte_dump = socket_instance.recv(buffer_size)
         except socket.error as ParentException: raise Exceptions.InterfaceError("Failed to receive message.") from ParentException
-        return Security.decrypt(key, components[0], components[1], components[2])
+        if key is not None:
+            try: components = byte_dump.split(b" |div| ")
+            except socket.error as ParentException: raise Exceptions.InterfaceError("Failed to receive message.") from ParentException
+            try: return Security.decrypt(key, components[0], components[1], components[2])
+            except IndexError: return byte_dump.decode("utf-8", "replace")
+        else: return byte_dump.decode("utf-8", "replace")
 
 class Instance:
     """
     Plain socket wrapper factory with basic functions and class variables, however no specialization, derived for Host, Server, and Client.
     Can be utilized by the end-user for creating more derived socket classes.
     """
-    def __init__(self, host: str, port: int, key: Union[str, bytes], key_is_path: bool = False):
+    def __init__(self, host: str, port: int, key: Union[str, bytes, None], key_is_path: bool = False):
         """
         Creates class socket object with supplied host and port for binding.
 
         :param host: str, hostname for binding or connecting
         :param port: int, port for binding or connecting
-        :param key: see Security.get_key for parameter documentation
+        :param key: see Security.get_key for parameter documentation, if None disables AES encryption and decryption
         :param key_is_path: see Security.get_key for parameter documentation
         """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -176,23 +188,33 @@ class Instance:
         """
         self.socket.settimeout(time)
 
-    def send(self, message: Union[str, bytes], socket_instance: object = "DEFAULT") -> None:
+    def send(self, message: Union[str, bytes], socket_instance: object = "DEFAULT", no_encrypt: bool = False) -> None:
         """
-        See Interface.send for documentation.
+        See Interface.send for documentation. socket_instance is automatically set to class socket object.
 
+        :param message: see Interface.send for parameter documentation
+        :param socket_instance: see Interface.send for parameter documentation
+        :param no_encrypt: bool, if True does not encrypt message, default False
         :return: None
         """
         if socket_instance == "DEFAULT": socket_instance = self.socket
-        Interface.send(socket_instance, self.key, message)
+        if no_encrypt is not False: key = None
+        else: key = self.key
+        Interface.send(socket_instance, key, message)
 
-    def receive(self, buffer_size: int = 4096, socket_instance: object = "DEFAULT") -> str:
+    def receive(self, buffer_size: int = 4096, socket_instance: object = "DEFAULT", no_decrypt: bool = False) -> str:
         """
-        See Interface.receive for documentation.
+        See Interface.receive for documentation. socket_instance is automatically set to class socket object.
 
+        :param buffer_size: see Interface.receive for parameter documentation
+        :param socket_instance: see Interface.receive for parameter documentation
+        :param no_decrypt: bool, if True does not decrypt message, default False
         :return: str, message received
         """
         if socket_instance == "DEFAULT": socket_instance = self.socket
-        return Interface.receive(socket_instance, self.key, buffer_size)
+        if no_decrypt is not False: key = None
+        else: key = self.key
+        return Interface.receive(socket_instance, key, buffer_size)
 
     def close(self) -> None:
         """
@@ -219,7 +241,7 @@ class Host(Instance):
     Host socket wrapper, derived from Instance. Factory method.
     The Host class is different from Server as it supports only one client, being simpler and more lightweight with no usage of threading.
     """
-    def __init__(self, port: int, key: Union[str, bytes], host: str = "localhost", key_is_path: bool = False):
+    def __init__(self, port: int, key: Union[str, bytes, None], host: str = "localhost", key_is_path: bool = False):
         """
         Initialize instance. See documentation for Instance.
         """
@@ -231,14 +253,13 @@ class Host(Instance):
 
     def listen(self) -> None:
         """
-        Starts listening for connections.
+        Starts listening for connections. Is blocking.
 
         :return: None
         """
         Instance.set_blocking(self, True)
         self.socket.listen()
         self.socket, self.client_address = self.socket.accept()
-        Instance.set_blocking(self, False)
 
     def disconnect(self) -> None:
         """
@@ -330,7 +351,7 @@ class Server(Instance):
     Supports multiple clients with threading, at the cost of resource footprint and complexity.
     Has no stop function, either stop program or close socket and delete instance.
     """
-    def __init__(self, port: int, key: Union[str, bytes], connection_handler: object = ServerClientManagers.client_manager, host: str = "localhost", key_is_path: bool = False, no_listen_on_init: bool = False):
+    def __init__(self, port: int, key: Union[str, bytes, None], connection_handler: object = ServerClientManagers.client_manager, host: str = "localhost", key_is_path: bool = False, no_listen_on_init: bool = False):
         """
         Initialize instance. See documentation for Instance.
 
@@ -399,7 +420,7 @@ class Client(Instance):
     """
     Client socket wrapper, derived from Instance. Factory method.
     """
-    def __init__(self, host: str, port: int, key: Union[str, bytes], key_is_path: bool = False):
+    def __init__(self, host: str, port: int, key: Union[str, bytes, None], key_is_path: bool = False):
         """
         Initialize instance.
 

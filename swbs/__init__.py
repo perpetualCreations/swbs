@@ -89,19 +89,21 @@ class Security:
         return [encrypted, tag, encryptor.nonce]
 
     @staticmethod
-    def decrypt(key: Union[str, bytes], message: bytes, tag: bytes, nonce: bytes) -> str:
+    def decrypt(key: Union[str, bytes], message: bytes, tag: bytes, nonce: bytes, return_bytes: bool = False) -> Union[str, bytes]:
         """
-        Decrypts a string with a 16-byte key for AES, tag, and nonce, returns decrypted string.
+        Decrypts a string with a 16-byte key for AES, tag, and nonce, returns decrypted string or bytes, default string.
 
         :param key: Union[str, bytes], AES encryption key
         :param message: bytes, message for decryption
         :param tag: bytes, encryption tag
         :param nonce: bytes, encryption nonce
-        :return: str, decrypted string
+        :param return_bytes: bool, if True decrypted string is returned as bytes, otherwise returned as string, default False
+        :return: Union[str, bytes], decrypted string
         """
         try:
             if isinstance(key, str): key = key.encode("ascii")
-            return AES.new(key, AES.MODE_EAX, nonce).decrypt_and_verify(message, tag).decode("utf-8", "replace")
+            if return_bytes is True: return AES.new(key, AES.MODE_EAX, nonce).decrypt_and_verify(message, tag)
+            else: return AES.new(key, AES.MODE_EAX, nonce).decrypt_and_verify(message, tag).decode("utf-8", "replace")
         except ValueError as ParentException: raise Exceptions.SecurityError("Message integrity verification failed.") from ParentException
 
 class Interface:
@@ -129,24 +131,28 @@ class Interface:
             except socket.error as ParentException: raise Exceptions.InterfaceError("Failed to send message.") from ParentException
 
     @staticmethod
-    def receive(socket_instance: object, key: Union[bytes, None], buffer_size: int = 4096) -> str:
+    def receive(socket_instance: object, key: Union[bytes, None], buffer_size: int = 4096, return_bytes: bool = False) -> Union[str, bytes]:
         """
-        If key provided, uses Security class to decrypt a received message, returns message as string.
-        If decrypting and message components (encrypted bytes, nonce, tag) are out of index, returns raw message as string.
+        If key provided, uses Security class to decrypt a received message, returns message.
+        If decrypting and message components (encrypted bytes, nonce, tag) are out of index, returns raw message.
+
+        Return type is configurable to be bytes or string, default is string.
 
         :param socket_instance: object, socket object
         :param key: Union[bytes, None], AES encryption key to be passed off to Security.decrypt, if None decryption does not run
         :param buffer_size: int, size of receiving buffer, default 4096
-        :return: str, decrypted message received
+        :param return_bytes: bool, if True message is returned as bytes, otherwise returned as string, default False
+        :return: Union[str, bytes], decrypted message received
         """
         try: byte_dump = socket_instance.recv(buffer_size)
         except socket.error as ParentException: raise Exceptions.InterfaceError("Failed to receive message.") from ParentException
+        SWITCH = {True:byte_dump, False:byte_dump.decode("utf-8", "replace")} # i have no idea how the scope referencing works out, but it workie so no need for fixie
         if key is not None:
             try: components = byte_dump.split(b" |div| ")
-            except socket.error as ParentException: raise Exceptions.InterfaceError("Failed to receive message.") from ParentException
-            try: return Security.decrypt(key, components[0], components[1], components[2])
-            except IndexError: return byte_dump.decode("utf-8", "replace")
-        else: return byte_dump.decode("utf-8", "replace")
+            except BaseException as ParentException: raise Exceptions.InterfaceError("Failed to receive message.") from ParentException
+            try: return Security.decrypt(key, components[0], components[1], components[2], return_bytes)
+            except IndexError: return SWITCH[return_bytes]
+        else: return SWITCH[return_bytes]
 
 class Instance:
     """
@@ -161,6 +167,10 @@ class Instance:
         :param port: int, port for binding or connecting
         :param key: see Security.get_key for parameter documentation, if None disables AES encryption and decryption
         :param key_is_path: see Security.get_key for parameter documentation
+        :ivar self.socket: object, instance's un-abstracted socket object
+        :ivar self.key: Union[bytes, None], AES encryption key or None if AES is to be disabled
+        :ivar self.host: str, hostname to connect to or listen on
+        :ivar self.port: int, port to connect to or listen on
         """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         Instance.set_timeout(self, 5)
@@ -202,19 +212,20 @@ class Instance:
         else: key = self.key
         Interface.send(socket_instance, key, message)
 
-    def receive(self, buffer_size: int = 4096, socket_instance: object = "DEFAULT", no_decrypt: bool = False) -> str:
+    def receive(self, buffer_size: int = 4096, socket_instance: object = "DEFAULT", no_decrypt: bool = False, return_bytes: bool = False) -> Union[str, bytes]:
         """
         See Interface.receive for documentation. socket_instance is automatically set to class socket object.
 
         :param buffer_size: see Interface.receive for parameter documentation
         :param socket_instance: see Interface.receive for parameter documentation
         :param no_decrypt: bool, if True does not decrypt message, default False
-        :return: str, message received
+        :param return_bytes: bool, see Interface.receive for parameter documentation
+        :return: Union[str, bytes], message received
         """
         if socket_instance == "DEFAULT": socket_instance = self.socket
         if no_decrypt is not False: key = None
         else: key = self.key
-        return Interface.receive(socket_instance, key, buffer_size)
+        return Interface.receive(socket_instance, key, buffer_size, return_bytes)
 
     def close(self) -> None:
         """
@@ -246,9 +257,10 @@ class Host(Instance):
         Initialize instance. See documentation for Instance.
         """
         super().__init__(host, port, key, key_is_path)
-        try:
-            self.socket.bind((self.host, self.port))
-        except socket.error: Instance.restart(self)
+        try: self.socket.bind((self.host, self.port))
+        except socket.error:
+            Instance.restart(self)
+            self.socket.bind((self.host, self.port,))
         self.client_address = None
 
     def listen(self) -> None:
@@ -366,7 +378,9 @@ class Server(Instance):
         """
         super().__init__(host, port, key, key_is_path)
         try: self.socket.bind((self.host, self.port))
-        except socket.error: Instance.restart(self)
+        except socket.error:
+            Instance.restart(self)
+            self.socket.bind((self.host, self.port))
         self.connection_handler = connection_handler
         self.clients_handled = 0
         self.clients = {}
@@ -422,7 +436,7 @@ class Client(Instance):
     """
     def __init__(self, host: str, port: int, key: Union[str, bytes, None], key_is_path: bool = False):
         """
-        Initialize instance.
+        Initialize instance. See documentation for Instance.
 
         :param host: str, hostname of host to connect to
         :param port: int, port that host is listening on

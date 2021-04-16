@@ -11,20 +11,20 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name = "swbs",
-    version = "1.2.3",
-    author = "perpetualCreations",
-    author_email = "tchen0584@gmail.com",
-    description = "Socket wrapper for sending and receiving byte strings.",
-    long_description = long_description,
-    long_description_content_type = "text/markdown",
-    url = "https://github.com/perpetualCreations/swbs/",
-    install_requires = ["pycryptodomex >= 3.9.9"],
+    name="swbs",
+    version="1.2.4",
+    author="perpetualCreations",
+    author_email="tchen0584@gmail.com",
+    description="Socket wrapper for sending and receiving byte strings.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/perpetualCreations/swbs/",
+    install_requires=["pycryptodomex >= 3.9.9"],
     packages=setuptools.find_packages(),
-    classifiers = [
+    classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires = '>=3.6',
+    python_requires='>=3.6',
 )

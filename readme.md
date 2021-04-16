@@ -11,7 +11,7 @@ To see documentation regarding installation and usage, please visit [https://dre
 ## Releases & Dist.
 With the released wheel file, after downloading:
 ```commandline
-pip3 install /path/to/wheel/file/here/swbs-1.2-py3-none-any.whl
+pip3 install /path/to/wheel/file/here/swbs-1.2.4-py3-none-any.whl
 ```
 ...Or available on PyPI through:
 ```commandline

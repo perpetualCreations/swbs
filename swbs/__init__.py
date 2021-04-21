@@ -12,9 +12,6 @@ from os import urandom
 from time import sleep
 from random import randint
 
-# TODO setup this module to accept multiple clients for one server on a single port
-import swbs
-
 
 class Exceptions:
     """

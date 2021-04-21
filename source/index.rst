@@ -28,7 +28,7 @@ SWBS is available on PyPI or as a wheel file for manual installation. Install th
 
 .. |release| replace:: |version|
 
-As listed in the requirements MANIFEST, it depends on pycryptodomex. If this dependency has not already been installed, use PIP again.
+As listed in the requirements MANIFEST, SWBS depends on pycryptodomex. If this dependency has not already been installed, use PIP again.
 
 .. code-block:: bash
 
@@ -92,7 +92,7 @@ SWBS is designed to be used as a straight-forward, simple socket wrapper library
    client.disconnect()
 
 There is an extended wealth of example scripts under the tests directory of the source Github repository. See project homepage for link.
-The ServerClientManagers class comes with example client managers.
+The ServerClientManagers class comes with example client managers. See API reference for more information.
 
 As mentioned in the Security section, AES encryption/decryption can be disabled by initializing an Instance derivative (Host/Client/Server class) with None as the key parameter.
 

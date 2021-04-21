@@ -12,8 +12,9 @@ from os import urandom
 from time import sleep
 from random import randint
 
-
 # TODO setup this module to accept multiple clients for one server on a single port
+import swbs
+
 
 class Exceptions:
     """
@@ -59,8 +60,7 @@ class Security:
         :param random_min: int, minimum random character length for key generation through hashing, default 16
         :return: Union[bytes, None], if dump_to_path is not string, return bytes being the key, otherwise return None
         """
-        assert random_min <= random_max, "random_min is greater than random_max."
-        assert random_min > 0, "random_min is or is less than 0."
+        random_min = min(max(random_min, 1), random_max)
         if isinstance(dump_to_path, str) is True:
             with open(dump_to_path, "wb") as key_dump:
                 key_dump.write(MD5.new(urandom(randint(random_min, random_max))).hexdigest().encode("ascii"))
@@ -394,10 +394,8 @@ class ServerClientManagers:
 
     class ClientManager:
         """
-        Client manager class template. Factory method.
+        Client manager base class template. Factory method.
         For users to derive from for their own client managers.
-
-        To use with Server class instances, use syntax as if this class were a function.
         """
 
         def __init__(self, instance, connection_socket: Union[socket.socket, object], client_id: int):
@@ -407,7 +405,11 @@ class ServerClientManagers:
             :param instance: class instance
             :param connection_socket: Union[socket.socket, object], socket object from connection
             :param client_id: int, client identification
+            :ivar self.instance: dump of parameter instance
+            :ivar self.connection_socket: dump of parameter connection_socket
+            :ivar self.client_id: dump of parameter client_id
             """
+            self.__bases__ = ()
             self.instance = instance
             self.connection_socket = connection_socket
             self.client_id = client_id
@@ -428,6 +430,34 @@ class ServerClientManagers:
                     del self.instance.clients[self.client_id]
                     break
 
+    class ClientManagerInstanceExposed(ClientManager, threading.Thread):
+        """
+        Same as ServerClientManagers.ClientManager, base class.
+        However, the ClientManager thread is exposed when executed by Server.listen, the object returned by the
+        "thread" key is the class instance. This allows code outside of the thread to access instance variables and
+        functions.
+
+        However, any code to be ran whilst as a thread needs to be declared in a function called "run" with no
+        parameters supported (except self, not to be static). Use __init__ for initialization only, and write actual
+        execution in the aforementioned .run() function.
+
+        This is achieved through using threading.Thread as a base. In result, expect inherited functions and attributes.
+        """
+
+        def __init__(self, instance, connection_socket: Union[socket.socket, object], client_id: int):
+            """
+            Takes given parameters, and stores as class variables.
+
+            :param instance: class instance
+            :param connection_socket: Union[socket.socket, object], socket object from connection
+            :param client_id: int, client identification
+            :ivar self.instance: dump of parameter instance
+            :ivar self.connection_socket: dump of parameter connection_socket
+            :ivar self.client_id: dump of parameter client_id
+            """
+            super().__init__(instance=instance, connection_socket=connection_socket, client_id=client_id)
+            threading.Thread.__init__(self)
+
 
 class Server(Instance):
     """
@@ -437,7 +467,7 @@ class Server(Instance):
     """
 
     def __init__(self, port: int, key: Union[str, bytes, None],
-                 connection_handler: object = ServerClientManagers.client_manager, host: str = "localhost",
+                 connection_handler: callable = ServerClientManagers.client_manager, host: str = "localhost",
                  key_is_path: bool = False, no_listen_on_init: bool = False):
         """
         Initialize instance. See documentation for Instance.
@@ -450,8 +480,9 @@ class Server(Instance):
 
         Begins listening for client connections immediately upon initializing, unless specified in parameters.
 
-        :param connection_handler: function, executed as a thread with every connection, see documentation for
-            Server.listen for more information, default is Server.client_manager
+        :param connection_handler: callable, executed as a thread with every connection, see documentation
+            for Server.listen for more information, default is Server.client_manager, to specify this parameter
+            enter the name of the class or function with no parentheses after
         :param no_listen_on_init: bool, if True, listen is not started on initialization, default False
         """
         super().__init__(host, port, key, key_is_path)
@@ -460,7 +491,7 @@ class Server(Instance):
         except socket.error:
             Instance.restart(self)
             self.socket.bind((self.host, self.port))
-        self.connection_handler = connection_handler
+        self.connection_handler: callable = connection_handler
         self.clients_handled = 0
         self.clients = {}
         self.thread_listen = None
@@ -510,12 +541,15 @@ class Server(Instance):
             Instance.set_blocking(self, True)
             self.socket.listen()
             connection_socket, client_source = self.socket.accept()
+            if ServerClientManagers.ClientManagerInstanceExposed in self.connection_handler.__bases__:
+                # warning can be safely ignored
+                thread = self.connection_handler(self, connection_socket, self.clients_handled)
+            else:
+                thread = threading.Thread(target=self.connection_handler, args=(self, connection_socket,
+                                                                                self.clients_handled,))
             self.clients.update({self.clients_handled: {"address": client_source[0], "port": client_source[1],
                                                         "socket": connection_socket,
-                                                        "thread": threading.Thread(target=self.connection_handler,
-                                                                                   args=(self, connection_socket,
-                                                                                         self.clients_handled,))}})
-            # thread creation above raises type warning?
+                                                        "thread": thread}})
             self.clients[self.clients_handled]["thread"].start()
             self.clients_handled += 1
 

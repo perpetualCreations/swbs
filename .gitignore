@@ -6,3 +6,5 @@ swbs.egg-info/
 swbs.egg-info/*
 .vscode/
 .vscode/*
+build/
+build/*

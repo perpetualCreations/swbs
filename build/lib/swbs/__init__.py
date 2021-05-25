@@ -631,13 +631,18 @@ class Server(Instance):
             Instance.set_blocking(self, True)
             self.socket.listen()
             connection_socket, client_source = self.socket.accept()
-            if len(self.connection_handler.__bases__) > 0 and \
-                ServerClientManagers.ClientManagerInstanceExposed in \
-                    self.connection_handler.__bases__:
-                # warning can be safely ignored
-                thread = self.connection_handler(
-                    self, connection_socket, self.clients_handled)
-            else:
+            try:
+                if ServerClientManagers.ClientManagerInstanceExposed in \
+                        self.connection_handler.__bases__:
+                    # warning can be safely ignored
+                    thread = self.connection_handler(
+                        self, connection_socket, self.clients_handled)
+                else:
+                    thread = threading.Thread(
+                        target=self.connection_handler,
+                        args=(self, connection_socket,
+                              self.clients_handled,))
+            except AttributeError:
                 thread = threading.Thread(
                     target=self.connection_handler,
                     args=(self, connection_socket,

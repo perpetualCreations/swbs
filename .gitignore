@@ -1,0 +1,6 @@
+.idea/
+.idea/*
+swbs/__pycache__/
+swbs/__pycache__/*
+swbs.egg-info/
+swbs.egg-info/*

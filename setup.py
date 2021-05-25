@@ -1,5 +1,6 @@
 """
-Socket Wrapper for Byte Strings (SWBS)
+Socket Wrapper for Byte Strings (SWBS).
+
 Made by perpetualCreations
 
 Setup script for generating package.
@@ -12,7 +13,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="swbs",
-    version="1.2.5a",
+    version="1.2.5b1",
     author="perpetualCreations",
     author_email="tchen0584@gmail.com",
     description="Socket wrapper for sending and receiving byte strings.",

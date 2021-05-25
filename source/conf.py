@@ -23,8 +23,8 @@ copyright = 'MIT License, perpetualCreations'
 author = 'perpetualCreations'
 
 # The full version, including alpha/beta/rc tags
-release = '1.2.5b2'
-version = '1.2.5b2'
+release = '1.2.6'
+version = '1.2.6'
 
 
 # -- General configuration ---------------------------------------------------

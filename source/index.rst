@@ -186,6 +186,13 @@ If the key parameter is the second option, parameter key_is_path must be set to 
 
 See API reference for more information.
 
+Server Class Troubleshooting
+----------------------------
+If you're using the SWBS server class, please note that initializing a server instance is **non-blocking**.
+
+The class launches the listener as a Daemon thread, the program will exit if there is no further execution.
+A hack to solve this would be to run a while loop after initializing the server. The server will then run infinitely until stopped.
+
 SWBS API
 ========
 
